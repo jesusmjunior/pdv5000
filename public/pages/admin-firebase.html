@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Firebase - Sistema PDV</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        .firebase-card {
+            background-color: #ffca28;
+            border-left: 5px solid #f57c00;
+        }
+        .config-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-active {
+            background-color: #4caf50;
+        }
+        .status-inactive {
+            background-color: #f44336;
+        }
+        .log-container {
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            font-family: monospace;
+            border-radius: 4px;
+        }
+        .log-entry {
+            margin: 0;
+            padding: 2px 0;
+        }
+        .log-info {
+            color: #4caf50;
+        }
+        .log-warning {
+            color: #ff9800;
+        }
+        .log-error {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Menu Lateral -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <img src="../img/logo-small.png" alt="Logo" onerror="this.src='../img/logo-placeholder-small.png'; this.onerror=null;">
+                <span>Sistema PDV</span>
+            </div>
+            
+            <div class="sidebar-menu">
+                <div class="sidebar-menu-item" onclick="window.location.href='dashboard.html'">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </div>
+                <div class="sidebar-menu-item" onclick="window.location.href='vendas.html'">
+                    <i class="bi bi-cart"></i>
+                    <span>Vendas</span>
+                </div>
+                <div class="sidebar-menu-item" onclick="window.location.href='produtos.html'">
+                    <i class="bi bi-box"></i>
+                    <span>Produtos</span>
+                </div>
+                <div class="sidebar-menu-item" onclick="window.location.href='clientes.html'">
+                    <i class="bi bi-people"></i>
+                    <span>Clientes</span>
+                </div>
+                <div class="sidebar-menu-item active">
+                    <i class="bi bi-cloud"></i>
+                    <span>Firebase Admin</span>
+                </div>
+                <div class="sidebar-menu-item" onclick="window.location.href='configuracoes.html'">
+                    <i class="bi bi-gear"></i>
+                    <span>Configurações</span>
+                </div>
+                <div class="sidebar-menu-item" id="logout-button">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Sair</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Conteúdo Principal -->
+        <div class="main-content">
+            <!-- Cabeçalho -->
+            <div class="header">
+                <div class="row">
+                    <div class="col">
+                        <h1>Admin Firebase</h1>
+                    </div>
+                    <div class="col text-right">
+                        <span id="user-name">Usuário</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Conteúdo -->
+            <div class="content">
+                <!-- Cartão de Status do Firebase -->
+                <div class="card firebase-card">
+                    <div class="card-body">
+                        <h2><i class="bi bi-cloud"></i> Firebase Status</h2>
+                        <div class="row">
+                            <div class="col">
+                                <p>
+                                    <span id="firebase-status-indicator" class="status-indicator"></span>
+                                    <span id="firebase-status-text">Verificando...</span>
+                                </p>
+                                <p id="firebase-project-id"></p>
+                            </div>
+                            <div class="col text-right">
+                                <button id="btn-test-connection" class="btn-primary">
+                                    <i class="bi bi-arrow-repeat"></i> Testar Conexão
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Configurações de Armazenamento -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        Configurações de Armazenamento
+                    </div>
+                    <div class="card-body">
+                        <div class="config-section">
+                            <h3>Armazenamento Preferido</h3>
+                            <div class="form-group">
+                                <select id="preferred-storage" class="form-control">
+                                    <option value="firebase">Firebase (Firestore)</option>
+                                    <option value="api">API (PostgreSQL)</option>
+                                    <option value="local">Local (localStorage)</option>
+                                </select>
+                            </div>
+                            <p>
+                                <small>Define onde os dados serão armazenados primariamente.</small>
+                            </p>
+                            <button id="btn-save-storage-config" class="btn-primary">Salvar Preferência</button>
+                        </div>
+                        
+                        <div class="config-section">
+                            <h3>Status dos Serviços</h3>
+                            <ul>
+                                <li>
+                                    <span id="firebase-service-indicator" class="status-indicator"></span>
+                                    Firebase: <span id="firebase-service-status">Verificando...</span>
+                                </li>
+                                <li>
+                                    <span id="api-service-indicator" class="status-indicator"></span>
+                                    API: <span id="api-service-status">Verificando...</span>
+                                </li>
+                                <li>
+                                    <span id="local-service-indicator" class="status-indicator"></span>
+                                    Local Storage: <span id="local-service-status">Verificando...</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Operações do Firebase -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        Operações do Firebase
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col">
+                                <button id="btn-sync-data" class="btn-primary">
+                                    <i class="bi bi-arrow-repeat"></i> Sincronizar Dados
+                                </button>
+                            </div>
+                            <div class="col">
+                                <button id="btn-import-local" class="btn-secondary">
+                                    <i class="bi bi-upload"></i> Importar do LocalStorage
+                                </button>
+                            </div>
+                            <div class="col">
+                                <button id="btn-export-local" class="btn-secondary">
+                                    <i class="bi bi-download"></i> Exportar para LocalStorage
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <h3>Progresso da Última Operação</h3>
+                            <div class="progress-bar">
+                                <div id="operation-progress" class="progress" style="width: 0%;"></div>
+                            </div>
+                            <p id="operation-status">Nenhuma operação em andamento</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Log de Atividades -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        Log de Atividades
+                    </div>
+                    <div class="card-body">
+                        <div class="log-container" id="activity-log">
+                            <p class="log-entry log-info">Sistema iniciado. Aguardando operações.</p>
+                        </div>
+                        <div class="mt-2 text-right">
+                            <button id="btn-clear-log" class="btn-secondary">Limpar Log</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/core/firebase-config.js"></script>
+    <script src="../js/core/utils.js"></script>
+    <script src="../js/core/database.js"></script>
+    <script src="../js/core/firestore.js"></script>
+    <script src="../js/core/storage-manager.js"></script>
+    <script src="../js/core/auth.js"></script>
+    <script src="../js/core/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Verificar autenticação
+            if (!window.auth || !window.auth.isAuthenticated()) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Verificar se é administrador
+            const user = window.auth.getUsuarioLogado();
+            if (user && user.role !== 'admin') {
+                alert('Acesso restrito a administradores');
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            
+            // Mostrar nome do usuário
+            if (user) {
+                document.getElementById('user-name').textContent = user.nome || user.username;
+            }
+            
+            // Configurar evento de logout
+            document.getElementById('logout-button').addEventListener('click', () => {
+                window.auth.logout();
+                window.location.href = 'login.html';
+            });
+            
+            // Inicializar página
+            initAdminPage();
+        });
+        
+        function initAdminPage() {
+            // Elementos da UI
+            const firebaseStatusIndicator = document.getElementById('firebase-status-indicator');
+            const firebaseStatusText = document.getElementById('firebase-status-text');
+            const firebaseProjectId = document.getElementById('firebase-project-id');
+            const btnTestConnection = document.getElementById('btn-test-connection');
+            
+            const preferredStorageSelect = document.getElementById('preferred-storage');
+            const btnSaveStorageConfig = document.getElementById('btn-save-storage-config');
+            
+            const firebaseServiceIndicator = document.getElementById('firebase-service-indicator');
+            const firebaseServiceStatus = document.getElementById('firebase-service-status');
+            const apiServiceIndicator = document.getElementById('api-service-indicator');
+            const apiServiceStatus = document.getElementById('api-service-status');
+            const localServiceIndicator = document.getElementById('local-service-indicator');
+            const localServiceStatus = document.getElementById('local-service-status');
+            
+            const btnSyncData = document.getElementById('btn-sync-data');
+            const btnImportLocal = document.getElementById('btn-import-local');
+            const btnExportLocal = document.getElementById('btn-export-local');
+            const operationProgress = document.getElementById('operation-progress');
+            const operationStatus = document.getElementById('operation-status');
+            
+            const activityLog = document.getElementById('activity-log');
+            const btnClearLog = document.getElementById('btn-clear-log');
+            
+            // Verificar status do Firebase
+            checkFirebaseStatus();
+            
+            // Carregar configuração atual de armazenamento
+            loadStorageConfig();
+            
+            // Verificar status dos serviços
+            checkServicesStatus();
+            
+            // Adicionar eventos
+            btnTestConnection.addEventListener('click', checkFirebaseStatus);
+            btnSaveStorageConfig.addEventListener('click', saveStorageConfig);
+            btnSyncData.addEventListener('click', syncData);
+            btnImportLocal.addEventListener('click', importFromLocal);
+            btnExportLocal.addEventListener('click', exportToLocal);
+            btnClearLog.addEventListener('click', clearLog);
+            
+            // Funções
+            
+            // Verificar status do Firebase
+            function checkFirebaseStatus() {
+                if (typeof firebase !== 'undefined' && firebase.app) {
+                    firebaseStatusIndicator.className = 'status-indicator status-active';
+                    firebaseStatusText.textContent = 'Conectado';
+                    firebaseProjectId.textContent = `Projeto: ${firebase.app.options.projectId || 'Desconhecido'}`;
+                    addLogEntry('Firebase conectado', 'info');
+                } else {
+                    firebaseStatusIndicator.className = 'status-indicator status-inactive';
+                    firebaseStatusText.textContent = 'Desconectado';
+                    firebaseProjectId.textContent = '';
+                    addLogEntry('Firebase não está disponível', 'error');
+                }
+            }
+            
+            // Carregar configuração de armazenamento
+            function loadStorageConfig() {
+                if (window.storageManager) {
+                    const preferredStorage = window.storageManager.getPreferredStorage();
+                    preferredStorageSelect.value = preferredStorage;
+                    addLogEntry(`Configuração carregada: armazenamento preferido é ${preferredStorage}`, 'info');
+                }
+            }
+            
+            // Salvar configuração de armazenamento
+            function saveStorageConfig() {
+                if (window.storageManager) {
+                    const preferredStorage = preferredStorageSelect.value;
+                    window.storageManager.setPreferredStorage(preferredStorage);
+                    addLogEntry(`Configuração salva: armazenamento preferido definido como ${preferredStorage}`, 'info');
+                    alert('Configuração salva com sucesso!');
+                }
+            }
+            
+            // Verificar status dos serviços
+            function checkServicesStatus() {
+                if (window.storageManager) {
+                    const status = window.storageManager.getServiceStatus();
+                    
+                    // Firebase
+                    firebaseServiceIndicator.className = `status-indicator ${status.firebase ? 'status-active' : 'status-inactive'}`;
+                    firebaseServiceStatus.textContent = status.firebase ? 'Disponível' : 'Indisponível';
+                    
+                    // API
+                    apiServiceIndicator.className = `status-indicator ${status.api ? 'status-active' : 'status-inactive'}`;
+                    apiServiceStatus.textContent = status.api ? 'Disponível' : 'Indisponível';
+                    
+                    // Local
+                    localServiceIndicator.className = `status-indicator ${status.local ? 'status-active' : 'status-inactive'}`;
+                    localServiceStatus.textContent = status.local ? 'Disponível' : 'Indisponível';
+                    
+                    addLogEntry('Status dos serviços atualizado', 'info');
+                }
+            }
+            
+            // Sincronizar dados
+            async function syncData() {
+                addLogEntry('Iniciando sincronização de dados...', 'info');
+                updateOperationStatus('Sincronizando dados...', 30);
+                
+                try {
+                    if (window.storageManager) {
+                        await window.storageManager.forceSyncData();
+                        updateOperationStatus('Sincronização concluída!', 100);
+                        addLogEntry('Sincronização concluída com sucesso', 'info');
+                    } else {
+                        throw new Error('Gerenciador de armazenamento não disponível');
+                    }
+                } catch (error) {
+                    updateOperationStatus('Erro na sincronização', 0);
+                    addLogEntry(`Erro na sincronização: ${error.message}`, 'error');
+                }
+            }
+            
+            // Importar dados do localStorage para o Firebase
+            async function importFromLocal() {
+                if (!window.firestoreDB || !window.firestoreDB.isAvailable()) {
+                    addLogEntry('Firestore não está disponível para importação', 'error');
+                    alert('Firestore não está disponível');
+                    return;
+                }
+                
+                if (!confirm('Isso irá importar dados do localStorage para o Firebase. Deseja continuar?')) {
+                    return;
+                }
+                
+                addLogEntry('Iniciando importação do localStorage para o Firebase...', 'info');
+                updateOperationStatus('Importando dados...', 10);
+                
+                try {
+                    // Coleções para importar
+                    const collections = ['produtos', 'clientes', 'vendas'];
+                    let progress = 10;
+                    
+                    for (const collection of collections) {
+                        // Buscar dados do localStorage
+                        const localData = getLocalData(collection);
+                        
+                        if (localData && localData.length > 0) {
+                            addLogEntry(`Importando ${localData.length} itens da coleção ${collection}...`, 'info');
+                            
+                            // Atualizar progresso
+                            progress += 20;
+                            updateOperationStatus(`Importando ${collection}...`, progress);
+                            
+                            // Importar para o Firebase
+                            for (const item of localData) {
+                                const { id, ...data } = item;
+                                await window.firestoreDB.add(collection, data);
+                            }
+                            
+                            addLogEntry(`${localData.length} itens importados para ${collection}`, 'info');
+                        } else {
+                            addLogEntry(`Nenhum dado encontrado para ${collection}`, 'warning');
+                        }
+                    }
+                    
+                    updateOperationStatus('Importação concluída!', 100);
+                    addLogEntry('Importação concluída com sucesso', 'info');
+                    
+                } catch (error) {
+                    updateOperationStatus('Erro na importação', 0);
+                    addLogEntry(`Erro na importação: ${error.message}`, 'error');
+                }
+            }
+            
+            // Exportar dados do Firebase para o localStorage
+            async function exportToLocal() {
+                if (!window.firestoreDB || !window.firestoreDB.isAvailable()) {
+                    addLogEntry('Firestore não está disponível para exportação', 'error');
+                    alert('Firestore não está disponível');
+                    return;
+                }
+                
+                if (!confirm('Isso irá exportar dados do Firebase para o localStorage. Dados locais existentes serão substituídos. Deseja continuar?')) {
+                    return;
+                }
+                
+                addLogEntry('Iniciando exportação do Firebase para o localStorage...', 'info');
+                updateOperationStatus('Exportando dados...', 10);
+                
+                try {
+                    // Coleções para exportar
+                    const collections = ['produtos', 'clientes', 'vendas'];
+                    let progress = 10;
+                    
+                    for (const collection of collections) {
+                        // Buscar dados do Firebase
+                        const firebaseData = await window.firestoreDB.getAll(collection);
+                        
+                        if (firebaseData && firebaseData.length > 0) {
+                            addLogEntry(`Exportando ${firebaseData.length} itens da coleção ${collection}...`, 'info');
+                            
+                            // Atualizar progresso
+                            progress += 20;
+                            updateOperationStatus(`Exportando ${collection}...`, progress);
+                            
+                            // Salvar no localStorage
+                            saveLocalData(collection, firebaseData);
+                            
+                            addLogEntry(`${firebaseData.length} itens exportados de ${collection}`, 'info');
+                        } else {
+                            addLogEntry(`Nenhum dado encontrado para ${collection} no Firebase`, 'warning');
+                        }
+                    }
+                    
+                    updateOperationStatus('Exportação concluída!', 100);
+                    addLogEntry('Exportação concluída com sucesso', 'info');
+                    
+                } catch (error) {
+                    updateOperationStatus('Erro na exportação', 0);
+                    addLogEntry(`Erro na exportação: ${error.message}`, 'error');
+                }
+            }
+            
+            // Buscar dados do localStorage
+            function getLocalData(collection) {
+                try {
+                    const data = localStorage.getItem(`orion_${collection}`);
+                    return data ? JSON.parse(data) : [];
+                } catch (error) {
+                    addLogEntry(`Erro ao ler ${collection} do localStorage: ${error.message}`, 'error');
+                    return [];
+                }
+            }
+            
+            // Salvar dados no localStorage
+            function saveLocalData(collection, data) {
+                try {
+                    localStorage.setItem(`orion_${collection}`, JSON.stringify(data));
+                    return true;
+                } catch (error) {
+                    addLogEntry(`Erro ao salvar ${collection} no localStorage: ${error.message}`, 'error');
+                    return false;
+                }
+            }
+            
+            // Atualizar status da operação
+            function updateOperationStatus(message, progressPercent) {
+                operationStatus.textContent = message;
+                operationProgress.style.width = `${progressPercent}%`;
+            }
+            
+            // Adicionar entrada ao log
+            function addLogEntry(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = document.createElement('p');
+                entry.className = `log-entry log-${type}`;
+                entry.textContent = `[${timestamp}] ${message}`;
+                
+                activityLog.appendChild(entry);
+                activityLog.scrollTop = activityLog.scrollHeight;
+            }
+            
+            // Limpar log
+            function clearLog() {
+                activityLog.innerHTML = '';
+                addLogEntry('Log limpo', 'info');
+            }
+        }
+    </script>
+</body>
+</html>

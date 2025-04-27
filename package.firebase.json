@@ -1,0 +1,12 @@
+{
+  "name": "firebase-deps",
+  "version": "1.0.0",
+  "description": "Firebase dependencies for the PDV system",
+  "scripts": {
+    "install": "npm install"
+  },
+  "dependencies": {
+    "firebase": "^10.9.0",
+    "firebase-admin": "^11.10.1"
+  }
+}

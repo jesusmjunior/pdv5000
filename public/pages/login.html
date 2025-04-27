@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema PDV</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-logo">
+            <img src="../img/logo.png" alt="Logo Sistema PDV" onerror="this.src='../img/logo-placeholder.png'; this.onerror=null;">
+        </div>
+        <h1>Sistema PDV</h1>
+        
+        <form id="loginForm" class="login-form">
+            <div class="login-message" id="loginMessage" style="display: none;"></div>
+            
+            <div class="form-group">
+                <label for="username">Usuário</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="useFirebase" name="useFirebase">
+                    <span class="checkmark"></span>
+                    Usar Firebase
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn-primary">Entrar</button>
+            </div>
+            
+            <div class="form-group">
+                <button type="button" id="registrarBtn" class="btn-secondary">Registrar</button>
+            </div>
+            
+            <div class="login-loading" style="display: none;">
+                <div class="spinner"></div>
+            </div>
+        </form>
+        
+        <!-- Formulário de Registro -->
+        <form id="registroForm" class="login-form" style="display: none;">
+            <div class="login-message" id="registroMessage" style="display: none;"></div>
+            
+            <div class="form-group">
+                <label for="registroEmail">Email</label>
+                <input type="email" id="registroEmail" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="registroNome">Nome</label>
+                <input type="text" id="registroNome" name="displayName" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="registroSenha">Senha</label>
+                <input type="password" id="registroSenha" name="password" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="registroConfirmaSenha">Confirmar Senha</label>
+                <input type="password" id="registroConfirmaSenha" name="confirmPassword" required>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn-primary">Criar Conta</button>
+                <button type="button" id="voltarLoginBtn" class="btn-secondary">Voltar ao Login</button>
+            </div>
+        </form>
+        
+        <div class="login-footer">
+            <p>&copy; 2023 Sistema PDV - Todos os direitos reservados</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "firebase/app";
+        import { getAnalytics } from "firebase/analytics";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+        import { getFirestore } from "firebase/firestore";
+
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+          apiKey: "AIzaSyAnU9Yo3R3G17f8uXWExczIcJ83PsR0ckw",
+          authDomain: "pdv1-49dc8.firebaseapp.com",
+          projectId: "pdv1-49dc8",
+          storageBucket: "pdv1-49dc8.firebasestorage.app",
+          messagingSenderId: "765042226958",
+          appId: "1:765042226958:web:211035b74ce82e54ba895f",
+          measurementId: "G-CX58J861VR"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // Expor para escopo global
+        window.firebase = {
+            app,
+            analytics,
+            auth,
+            firestore: db
+        };
+        
+        // Informar disponibilidade do Firebase
+        document.dispatchEvent(new CustomEvent('firebase-loaded'));
+    </script>
+    
+    <!-- Scripts da Aplicação -->
+    <script src="../js/core/utils.js"></script>
+    <script src="../js/core/database.js"></script>
+    <script src="../js/core/firestore.js"></script>
+    <script src="../js/core/storage-manager.js"></script>
+    <script src="../js/core/auth.js"></script>
+    <script src="../js/core/app.js"></script>
+    <script src="../js/modules/login.js"></script>
+    
+    <!-- Script de Login com Firebase -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Elementos da UI
+            const loginForm = document.getElementById('loginForm');
+            const registroForm = document.getElementById('registroForm');
+            const registrarBtn = document.getElementById('registrarBtn');
+            const voltarLoginBtn = document.getElementById('voltarLoginBtn');
+            const useFirebaseCheckbox = document.getElementById('useFirebase');
+            const loginMessage = document.getElementById('loginMessage');
+            const registroMessage = document.getElementById('registroMessage');
+            
+            // Mostrar/ocultar formulários
+            registrarBtn.addEventListener('click', () => {
+                loginForm.style.display = 'none';
+                registroForm.style.display = 'block';
+            });
+            
+            voltarLoginBtn.addEventListener('click', () => {
+                registroForm.style.display = 'none';
+                loginForm.style.display = 'block';
+            });
+            
+            // Registrar com Firebase
+            registroForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const email = document.getElementById('registroEmail').value;
+                const displayName = document.getElementById('registroNome').value;
+                const password = document.getElementById('registroSenha').value;
+                const confirmPassword = document.getElementById('registroConfirmaSenha').value;
+                
+                // Verificar se as senhas coincidem
+                if (password !== confirmPassword) {
+                    mostrarMensagem(registroMessage, 'As senhas não coincidem', 'error');
+                    return;
+                }
+                
+                try {
+                    // Verificar se auth está disponível
+                    if (!window.auth.isFirebaseAvailable()) {
+                        mostrarMensagem(registroMessage, 'Firebase não está disponível', 'error');
+                        return;
+                    }
+                    
+                    // Registrar usuário
+                    const resultado = await window.auth.registrarComFirebase(email, password, displayName);
+                    
+                    if (resultado.sucesso) {
+                        mostrarMensagem(registroMessage, resultado.mensagem, 'success');
+                        // Voltar para tela de login após registro bem-sucedido
+                        setTimeout(() => {
+                            registroForm.style.display = 'none';
+                            loginForm.style.display = 'block';
+                        }, 2000);
+                    } else {
+                        mostrarMensagem(registroMessage, resultado.mensagem, 'error');
+                    }
+                } catch (error) {
+                    mostrarMensagem(registroMessage, error.message || 'Erro ao registrar', 'error');
+                }
+            });
+            
+            // Substituir o comportamento padrão do formulário de login
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const useFirebase = useFirebaseCheckbox.checked;
+                
+                try {
+                    // Ocultar mensagens anteriores
+                    loginMessage.style.display = 'none';
+                    
+                    // Mostrar carregamento
+                    const loading = document.querySelector('.login-loading');
+                    loading.style.display = 'flex';
+                    
+                    // Realizar login
+                    const resultado = await window.auth.login(username, password, useFirebase);
+                    
+                    // Ocultar carregamento
+                    loading.style.display = 'none';
+                    
+                    if (resultado.sucesso) {
+                        // Aguardar um momento para o token ser processado
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 500);
+                    } else {
+                        mostrarMensagem(loginMessage, resultado.mensagem, 'error');
+                    }
+                } catch (error) {
+                    console.error('Erro no login:', error);
+                    document.querySelector('.login-loading').style.display = 'none';
+                    mostrarMensagem(loginMessage, error.message || 'Erro ao fazer login', 'error');
+                }
+            });
+            
+            // Função auxiliar para mostrar mensagens
+            function mostrarMensagem(elemento, texto, tipo = 'info') {
+                elemento.textContent = texto;
+                elemento.className = 'login-message ' + tipo;
+                elemento.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
